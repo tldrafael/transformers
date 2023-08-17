@@ -864,9 +864,11 @@ class Mask2FormerSinePositionEmbedding(nn.Module):
     def forward(self, x: Tensor, mask: Optional[Tensor] = None) -> Tensor:
         if mask is None:
             mask = torch.zeros((x.size(0), x.size(2), x.size(3)), device=x.device, dtype=torch.bool)
+
         not_mask = (~mask).to(x.dtype)
         y_embed = not_mask.cumsum(1)
         x_embed = not_mask.cumsum(2)
+
         if self.normalize:
             eps = 1e-6
             y_embed = y_embed / (y_embed[:, -1:, :] + eps) * self.scale
@@ -933,6 +935,7 @@ class Mask2FormerPixelDecoderEncoderMultiscaleDeformableAttention(nn.Module):
     ):
         # add position embeddings to the hidden states before projecting to queries and keys
         if position_embeddings is not None:
+            position_embeddings = position_embeddings.to(hidden_states.dtype)
             hidden_states = self.with_pos_embed(hidden_states, position_embeddings)
 
         batch_size, num_queries, _ = hidden_states.shape
@@ -1164,6 +1167,7 @@ class Mask2FormerPixelDecoderEncoderOnly(nn.Module):
 
         hidden_states = inputs_embeds
         reference_points = self.get_reference_points(spatial_shapes, valid_ratios, device=inputs_embeds.device)
+        reference_points = reference_points.to(hidden_states.dtype)
 
         all_hidden_states = () if output_hidden_states else None
         all_attentions = () if output_attentions else None
@@ -1294,6 +1298,7 @@ class Mask2FormerPixelDecoder(nn.Module):
         # Apply 1x1 convolution to reduce the channel dimension to d_model (256 by default)
         input_embeds = []
         position_embeddings = []
+
         for level, x in enumerate(features[::-1][: self.num_feature_levels]):
             input_embeds.append(self.input_projections[level](x))
             position_embeddings.append(self.position_embedding(x))
@@ -1467,7 +1472,7 @@ class Mask2FormerAttention(nn.Module):
         # add position embeddings to the hidden states before projecting to queries and keys
         if position_embeddings is not None:
             hidden_states_original = hidden_states
-            hidden_states = self.with_pos_embed(hidden_states, position_embeddings)
+            hidden_states = self.with_pos_embed(hidden_states, position_embeddings.to(hidden_states.dtype))
 
         # add key-value position embeddings to the key value states
         if key_value_position_embeddings is not None:
