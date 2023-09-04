@@ -387,10 +387,12 @@ def pair_wise_sigmoid_cross_entropy_loss(inputs: torch.Tensor, labels: torch.Ten
     cross_entropy_loss_pos = criterion(inputs, torch.ones_like(inputs))
     cross_entropy_loss_neg = criterion(inputs, torch.zeros_like(inputs))
 
+    cross_entropy_loss_pos = cross_entropy_loss_pos / height_and_width
+    cross_entropy_loss_neg = cross_entropy_loss_neg / height_and_width
     loss_pos = torch.matmul(cross_entropy_loss_pos, labels.T)
     loss_neg = torch.matmul(cross_entropy_loss_neg, (1 - labels).T)
     loss = loss_pos + loss_neg
-    loss = loss / height_and_width
+    #loss = loss / height_and_width
     return loss
 
 
@@ -487,7 +489,12 @@ class Mask2FormerHungarianMatcher(nn.Module):
             # final cost matrix
             cost_matrix = self.cost_mask * cost_mask + self.cost_class * cost_class + self.cost_dice * cost_dice
             # do the assigmented using the hungarian algorithm in scipy
-            assigned_indices: Tuple[np.array] = linear_sum_assignment(cost_matrix.cpu())
+            try:
+                assigned_indices: Tuple[np.array] = linear_sum_assignment(cost_matrix.cpu())
+            except:
+                import pdb; pdb.set_trace()
+                cost_mask = pair_wise_sigmoid_cross_entropy_loss(pred_mask, target_mask)
+
             indices.append(assigned_indices)
 
         # It could be stacked in one tensor
