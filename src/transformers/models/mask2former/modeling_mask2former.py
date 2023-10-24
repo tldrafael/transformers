@@ -493,7 +493,7 @@ class Mask2FormerHungarianMatcher(nn.Module):
                 assigned_indices: Tuple[np.array] = linear_sum_assignment(cost_matrix.cpu())
             except:
                 import pdb; pdb.set_trace()
-                cost_mask = pair_wise_sigmoid_cross_entropy_loss(pred_mask, target_mask)
+                print("Error in hungarian algorithm")
 
             indices.append(assigned_indices)
 
@@ -640,18 +640,20 @@ class Mask2FormerLoss(nn.Module):
         target_masks = target_masks[:, None]
 
         # Sample point coordinates
-        with torch.no_grad():
-            point_coordinates = self.sample_points_using_uncertainty(
-                pred_masks,
-                lambda logits: self.calculate_uncertainty(logits),
-                self.num_points,
-                self.oversample_ratio,
-                self.importance_sample_ratio,
-            )
+        # with torch.no_grad():
+        #     point_coordinates = self.sample_points_using_uncertainty(
+        #         pred_masks,
+        #         lambda logits: self.calculate_uncertainty(logits),
+        #         self.num_points,
+        #         self.oversample_ratio,
+        #         self.importance_sample_ratio,
+        #     )
 
-            point_labels = sample_point(target_masks, point_coordinates, align_corners=False).squeeze(1)
+        #     point_labels = sample_point(target_masks, point_coordinates, align_corners=False).squeeze(1)
 
-        point_logits = sample_point(pred_masks, point_coordinates, align_corners=False).squeeze(1)
+        # point_logits = sample_point(pred_masks, point_coordinates, align_corners=False).squeeze(1)
+        point_logits = pred_masks.view(2,-1)
+        point_labels = target_masks.view(2,-1)
 
         losses = {
             "loss_mask": sigmoid_cross_entropy_loss(point_logits, point_labels, num_masks),
