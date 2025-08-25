@@ -35,6 +35,7 @@ from ...pytorch_utils import compile_compatible_method_lru_cache
 from ...utils import TransformersKwargs, auto_docstring
 from ...utils.generic import check_model_inputs
 from .configuration_dinov3_vit import DINOv3ViTConfig
+from ...integrations.sdpa_attention import sdpa_attention_forward
 
 
 class DINOv3ViTEmbeddings(nn.Module):
@@ -295,9 +296,10 @@ class DINOv3ViTAttention(nn.Module):
         cos, sin = position_embeddings
         query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
 
-        attention_interface: Callable = eager_attention_forward
-        if self.config._attn_implementation != "eager":
-            attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
+        attention_interface: Callable = sdpa_attention_forward
+        # attention_interface: Callable = eager_attention_forward
+        # if self.config._attn_implementation != "eager":
+        #     attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
 
         attn_output, attn_weights = attention_interface(
             self,
