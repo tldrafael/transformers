@@ -172,7 +172,8 @@ class DINOv3ViTRopePositionEmbedding(nn.Module):
             # (height * width, 2, head_dim / 4) -> (height * width, head_dim / 2) -> (height * width, head_dim)
             angles = 2 * math.pi * patch_coords[:, :, None] * self.inv_freq[None, None, :]
             angles = angles.flatten(1, 2)
-            angles = angles.tile(2)
+            # angles = angles.tile(2)
+            angles = torch.cat((angles, angles), dim=-1)
 
             cos = torch.cos(angles)
             sin = torch.sin(angles)
